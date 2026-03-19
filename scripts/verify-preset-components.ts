@@ -14,10 +14,10 @@ interface ValidationResult {
 }
 
 function validateComponent(
-  component: Record<string, unknown>,
+  component: Record<string, any>,
 ): ValidationResult {
   const result: ValidationResult = {
-    partName: component.partName,
+    partName: component.partName as string,
     valid: true,
     errors: [],
     warnings: [],
@@ -113,7 +113,7 @@ function validateComponent(
 
   // 7. コネクタのチェック
   if (spec.communication?.connectors) {
-    spec.communication.connectors.forEach((conn: Record<string, unknown>) => {
+    spec.communication.connectors.forEach((conn: Record<string, any>) => {
       if (!conn.type) {
         result.warnings.push('Connector type is missing');
       }
@@ -210,58 +210,12 @@ async function main() {
       const localComp = PRESET_COMPONENTS.find(
         (l) => l.partName === dbComp.partName,
       );
-      if (!localComp) {
-        console.log(`📋 ${dbComp.partName} - Only in database`);
-      }
+      if (localComp) continue;
+      console.log(`⚠️  ${dbComp.partName} - Not in local data`);
     }
   } catch (error) {
-    console.error('Error accessing database:', error);
-  }
-
-  // サマリー
-  console.log('\n=== Summary ===\n');
-  const invalidCount = localResults.filter((r) => !r.valid).length;
-  const warningCount = localResults.filter((r) => r.warnings.length > 0).length;
-
-  console.log(`Total components: ${PRESET_COMPONENTS.length}`);
-  console.log(`Valid: ${PRESET_COMPONENTS.length - invalidCount}`);
-  console.log(`Invalid: ${invalidCount}`);
-  console.log(`With warnings: ${warningCount}`);
-
-  // 具体的な推奨事項
-  console.log('\n=== Recommendations ===\n');
-
-  if (invalidCount > 0) {
-    console.log(
-      '❌ Fix errors in invalid components before using in production',
-    );
-  }
-
-  if (warningCount > 0) {
-    console.log('⚠️  Review warnings to ensure data accuracy');
-  }
-
-  // よくある問題のチェック
-  const missingPwm = localResults.filter(
-    (r) =>
-      r.warnings.some((w) => w.includes('PWM')) &&
-      PRESET_COMPONENTS.find((c) => c.partName === r.partName)?.category ===
-        'microcontroller',
-  );
-
-  if (missingPwm.length > 0) {
-    console.log(
-      '💡 Consider adding PWM pin counts for:',
-      missingPwm.map((r) => r.partName).join(', '),
-    );
+    console.error('Error checking database data:', error);
   }
 }
 
-main()
-  .catch((e) => {
-    console.error('Fatal error:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+main();
