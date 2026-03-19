@@ -188,213 +188,43 @@ export const useSpatialCategorization = ({
     categoryId: string, 
     delta: { x: number; y: number }
   ) => {
-    console.log(`🚀 Moving category ${categoryId} with delta:`, delta)
+    console.log(`🚀 Moving category ${categoryId} with delta`, delta)
+    const categoryNode = nodes.find(n => n.id === categoryId) as Node<CategoryNodeData> | undefined
+    if (!categoryNode) return
     
-    const category = nodes.find(n => n.id === categoryId && n.data?.nodeType === 'category') as Node<CategoryNodeData>
-    if (!category) return
+    const categoryBounds = categoryNode.data.bounds || {
+      x: categoryNode.position?.x || 0,
+      y: categoryNode.position?.y || 0,
+      width: 300,
+      height: 200
+    }
     
-    // カテゴリ内の部品を一緒に移動
-    const memberNodes = nodes.filter(n => n.data.categoryId === categoryId)
+    const newBounds = {
+      x: categoryBounds.x + delta.x,
+      y: categoryBounds.y + delta.y,
+      width: categoryBounds.width,
+      height: categoryBounds.height
+    }
     
-    memberNodes.forEach(member => {
+    updateNode(categoryId, { bounds: newBounds })
+    
+    const members = nodes.filter(n => n.data?.categoryId === categoryId)
+    members.forEach(member => {
       const newPosition = {
         x: member.position.x + delta.x,
         y: member.position.y + delta.y
       }
-      
-      // ノード位置を更新（React Flowの標準的な方法）
-      // updateNode では position を直接更新できないため、
-      // この処理は親コンポーネントで実装する必要がある
-      console.log(`📍 Member ${member.data.title} new position:`, newPosition)
+      updateNode(member.id, { position: newPosition })
     })
-  }, [nodes])
-  
-  /**
-   * カテゴリ重複防止：他のカテゴリと重複しないかチェック
-   */
-  const validateCategoryPosition = useCallback((
-    categoryId: string,
-    newBounds: { x: number; y: number; width: number; height: number }
-  ): { isValid: boolean; adjustedBounds?: { x: number; y: number; width: number; height: number } } => {
-    const otherCategories = nodes.filter(n => 
-      n.data?.nodeType === 'category' && 
-      n.id !== categoryId
-    )
-    
-    // 重複チェック
-    for (const otherCategory of otherCategories) {
-      const otherBounds = otherCategory.data.bounds
-      if (!otherBounds) continue
-      
-      // 境界ボックス重複判定
-      const isOverlapping = !(
-        newBounds.x + newBounds.width <= otherBounds.x ||
-        otherBounds.x + otherBounds.width <= newBounds.x ||
-        newBounds.y + newBounds.height <= otherBounds.y ||
-        otherBounds.y + otherBounds.height <= newBounds.y
-      )
-      
-      if (isOverlapping) {
-        console.log(`⚠️ Category ${categoryId} overlaps with ${otherCategory.id}`)
-        
-        // 自動調整：右にずらす
-        const adjustedBounds = {
-          ...newBounds,
-          x: otherBounds.x + otherBounds.width + 20, // 20pxの余白
-        }
-        
-        // 再帰的に他のカテゴリとの重複もチェック
-        const recursiveCheck = validateCategoryPosition(categoryId, adjustedBounds)
-        return recursiveCheck.isValid ? recursiveCheck : { isValid: false }
-      }
-    }
-    
-    return { isValid: true, adjustedBounds: newBounds }
-  }, [nodes])
-
-  /**
-   * カテゴリのサイズを更新
-   */
-  const updateCategoryBounds = useCallback((
-    categoryId: string,
-    newBounds: { x: number; y: number; width: number; height: number }
-  ) => {
-    console.log(`📏 Updating category ${categoryId} bounds:`, newBounds)
-    
-    // 重複防止チェック
-    const validation = validateCategoryPosition(categoryId, newBounds)
-    const finalBounds = validation.adjustedBounds || newBounds
-    
-    if (!validation.isValid) {
-      console.warn(`❌ Cannot place category ${categoryId} at position - no valid space found`)
-      return
-    }
-    
-    updateNode(categoryId, {
-      bounds: finalBounds
-    })
-    
-    // サイズ変更後に即座に自動分類を実行
-    updateCategoryMembership()
-  }, [updateNode, updateCategoryMembership, validateCategoryPosition])
-  
-  /**
-   * 安定化されたハッシュ計算（無限ループ防止）
-   */
-  const stableNodeIds = useMemo(() => {
-    return nodes.map(n => n.id).sort().join('|')
-  }, [nodes.length]) // 長さのみに依存
-  
-  const positionHash = useMemo(() => {
-    if (nodes.length === 0) return ''
-    return nodes
-      .filter(n => n.data?.nodeType !== 'category')
-      .map(n => `${n.id}:${Math.round(n.position?.x || 0)}:${Math.round(n.position?.y || 0)}`)
-      .sort()
-      .join('|')
-  }, [stableNodeIds, nodes.map(n => `${n.id}:${Math.round(n.position?.x || 0)}:${Math.round(n.position?.y || 0)}`).join('|')])
-
-  const boundsHash = useMemo(() => {
-    if (nodes.length === 0) return ''
-    return nodes
-      .filter(n => n.data?.nodeType === 'category')
-      .map(n => {
-        const bounds = n.data.bounds
-        return bounds 
-          ? `${n.id}:${Math.round(bounds.x)}:${Math.round(bounds.y)}:${Math.round(bounds.width)}:${Math.round(bounds.height)}`
-          : `${n.id}:no-bounds`
-      })
-      .sort()
-      .join('|')
-  }, [stableNodeIds, nodes.filter(n => n.data?.nodeType === 'category').map(n => {
-    const bounds = n.data.bounds
-    return bounds ? `${n.id}:${Math.round(bounds.x)}:${Math.round(bounds.y)}:${Math.round(bounds.width)}:${Math.round(bounds.height)}` : `${n.id}:no-bounds`
-  }).join('|')])
-
-  /**
-   * 統合されたカテゴライズトリガー（無限ループ防止）
-   */
-  const lastProcessedHashRef = useRef<string>('')
-  const isInitializedRef = useRef(false)
+  }, [nodes, updateNode])
   
   useEffect(() => {
-    if (nodes.length === 0) return
-    
-    // 現在のハッシュを計算
-    const currentHash = `pos:${positionHash}|bounds:${boundsHash}`
-    
-    // ハッシュが変わってない場合はスキップ
-    if (currentHash === lastProcessedHashRef.current) return
-    
-    // データロード初期化判定
-    const hasCategories = nodes.some(n => n.data?.nodeType === 'category')
-    const hasParts = nodes.some(n => n.data?.nodeType !== 'category')
-    
-    if (!hasCategories || !hasParts) return
-    
-    const isInitialization = !isInitializedRef.current
-    
-    // デバウンスタイマー
-    const delay = isInitialization ? 200 : 100
-    const timer = setTimeout(() => {
-      lastProcessedHashRef.current = currentHash
-      
-      if (process.env.NODE_ENV === 'development') {
-        // Categorization logging reduced for performance
-      }
-      
-      updateCategoryMembership(nodes)
-      isInitializedRef.current = true
-    }, delay)
-    
-    return () => clearTimeout(timer)
-  }, [positionHash, boundsHash, nodes, updateCategoryMembership])
+    updateCategoryMembership()
+  }, [nodes, updateCategoryMembership])
   
-  /**
-   * ドラッグ中のリアルタイム視覚フィードバック
-   */
-  const getNodeDragPreview = useCallback((
-    nodeId: string,
-    dragPosition: { x: number; y: number }
-  ): { categoryId: string | null; overlapRatio: number } => {
-    // 自己参照防止: ドラッグしているノード自体がカテゴリの場合は除外
-    const draggedNode = nodes.find(n => n.id === nodeId)
-    if (draggedNode && draggedNode.data?.nodeType === 'category') {
-      return { categoryId: null, overlapRatio: 0 }
-    }
-    
-    const categoryNodes = nodes.filter(n => 
-      n.data?.nodeType === 'category' && 
-      n.id !== nodeId // 自分自身を除外
-    )
-    let bestMatch: { categoryId: string; overlapRatio: number } | null = null
-    
-    categoryNodes.forEach(category => {
-      const bounds = category.data.bounds
-      const result = isNodeInBounds(dragPosition, bounds)
-      
-      if (result.isInBounds && (!bestMatch || result.overlapRatio > bestMatch.overlapRatio)) {
-        bestMatch = {
-          categoryId: category.id,
-          overlapRatio: result.overlapRatio
-        }
-      }
-    })
-    
-    return {
-      categoryId: bestMatch?.categoryId || null,
-      overlapRatio: bestMatch?.overlapRatio || 0
-    }
-  }, [nodes, isNodeInBounds])
-
-  return { 
-    updateCategoryMembership: (nodeList?: Node<NodeData>[]) => updateCategoryMembership(nodeList),
-    moveCategoryWithMembers,
-    updateCategoryBounds,
-    isNodeInBounds,
-    getNodeDragPreview,
-    validateCategoryPosition,
+  return {
     localCategoryPreview,
-    setLocalCategoryPreview
+    setLocalCategoryPreview,
+    moveCategoryWithMembers
   }
 }
