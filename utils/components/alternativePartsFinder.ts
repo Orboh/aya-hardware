@@ -201,5 +201,13 @@ function generateCommunicationAlternatives(
         title: `${component.data?.title} (${protocol}版)`,
         voltage: component.data?.voltage,
         communication: protocol,
-        description: `${protocol}通信対応
-// ... truncated ...
+        description: `${protocol}対応版の${component.data?.title}`,
+        category,
+        advantages: [`${protocol}通信で互換性向上`],
+        tradeoffs: component.data?.communication ? [`${component.data.communication}から${protocol}への変更`] : []
+      })
+    }
+  })
+  
+  return alternatives
+}
