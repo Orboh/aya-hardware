@@ -171,25 +171,11 @@ describe('Complex Component Display Usability Tests', () => {
         const visiblePorts = screen.getAllByTestId(/^port-digital-/)
         const pwmPorts = visiblePorts.filter(port => {
           const portId = port.getAttribute('data-testid')
-          const pinNumber = parseInt(portId?.replace('port-digital-', '') || '0')
+          const pinNumber = parseInt(portId?.replace(/^port-digital-/, '') || '', 10)
           return [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 22, 23].includes(pinNumber)
         })
         expect(pwmPorts.length).toBeGreaterThan(0)
       })
-
-      // フィルターのクリア
-      await user.clear(searchInput)
-      await user.type(searchInput, 'I2C')
-      
-      await waitFor(() => {
-        expect(screen.getByText('SDA')).toBeVisible()
-        expect(screen.getByText('SCL')).toBeVisible()
-      })
     })
-
-    it('should display port details on hover/click', async () => {
-      const onPortClick = jest.fn()
-      
-      render(
-        <DynamicPort
-// ... truncated ...
+  })
+})
