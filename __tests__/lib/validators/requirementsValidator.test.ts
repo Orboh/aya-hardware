@@ -114,7 +114,7 @@ describe('RequirementsValidator', () => {
       expect(result.issues.some(i => i.message.includes('Size constraints may conflict'))).toBe(true)
     })
 
-    it('should check numeric consistency for// temperature ranges', () => {
+    it('should check numeric consistency for temperature ranges', () => {
       const document: RequirementsDocument = {
         id: 'test-doc',
         projectId: 'project-1',
@@ -184,5 +184,18 @@ describe('RequirementsValidator', () => {
       const sections: RequirementsSection[] = [
         {
           id: 'sec-1',
-   
-// ... truncated ...
+          title: 'System Requirements',
+          type: 'system',
+          content: 'System requirements',
+          completeness: 90,
+          order: 0,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      ]
+      const result = validator.checkConsistency(document, sections)
+
+      expect(result.issues.some(i => i.message.includes('Missing critical sections'))).toBe(true)
+    })
+  })
+})
