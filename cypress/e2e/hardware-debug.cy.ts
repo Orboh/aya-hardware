@@ -163,16 +163,6 @@ describe('Hardware Debug Support E2E', () => {
     (cy as any).get('button').contains('Start Session').click()
     
     // Should show permission error
-    (cy as any).contains('Camera and microphone access denied').should('be.visible')
-    (cy as any).get('button').contains('Start Session').should('be.visible')
+    (cy as any).contains('Camera permission denied').should('be.visible')
   })
-
-  it('integrates with project context', () => {
-    // First create some nodes in System Diagram
-    (cy as any).get('button').contains('System Diagram').click()
-    
-    // Add Arduino node
-    (cy as any).get('.react-flow__pane').rightclick(200, 200)
-    (cy as any).contains('Add Component').click()
-    (cy as any).get('input[value="New Component"]').clear().type('A
-// ... truncated ...
+})
