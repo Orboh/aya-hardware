@@ -152,4 +152,4 @@ test.describe('AYA Dialogue System E2E Tests', () => {
     await page.fill('[data-testid="aya-chat-input"]', 'The system needs to measure from -20°C to 85°C')
     await page.click('[data-testid="send-message"]')
   })
-}
+})
