@@ -27,9 +27,9 @@ import { FileUpload } from '@/components/management/FileUpload'
 interface ChatPanelUIProps {
   // 基本的なチャット状態
   chatMessages: ChatMessage[]
-  chatThreads: { id: string; name: string; messages: ChatMessage[] }[]
+  chatThreads: { id: string; name: string; messages: ChatMessage[]; isPinned?: boolean; lastUpdated?: string }[]
   currentMessage: string
-  setCurrentMessage: (message: string) => void
+  setCurrentMessage: React.Dispatch<React.SetStateAction<string>>
   isChatActive: boolean
   currentThreadId: string | null
   showThreads: boolean
@@ -60,7 +60,7 @@ interface ChatPanelUIProps {
   }
   
   // アクション関数
-  setChatThreads: React.Dispatch<React.SetStateAction<{ id: string; name: string; messages: ChatMessage[] }[]>>
+  setChatThreads: React.Dispatch<React.SetStateAction<{ id: string; name: string; messages: ChatMessage[]; isPinned?: boolean; lastUpdated?: string }[]>>
   setShowThreads: React.Dispatch<React.SetStateAction<boolean>>
   setChatMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>
   setCurrentThreadId: React.Dispatch<React.SetStateAction<string | null>>
@@ -157,33 +157,24 @@ export function ChatPanelUI({
                       .sort((a, b) => {
                         if (a.isPinned && !b.isPinned) return -1
                         if (!a.isPinned && b.isPinned) return 1
-                        return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
+                        return new Date(b.lastUpdated || 0).getTime() - new Date(a.lastUpdated || 0).getTime()
                       })
                       .map((thread) => (
                       <div
                         key={thread.id}
                         className="p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors relative"
-                        onClick={() => handleSelectThread(thread.id, chatThreads, setChatMessages, setCurrentThreadId, setIsChatActive, setShowThreads)}
+                        onClick={() => handleSelectThread(thread.id, setCurrentThreadId, setChatMessages, setIsChatActive, setShowThreads)}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm mb-1 truncate flex items-center gap-1">
-                              {thread.isPinned && <Pin className="h-3 w-3 text-blue-500 flex-shrink-0" />}
-                              <span className="truncate">{thread.title}</span>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {new Date(thread.lastUpdated).toLocaleDateString()} • {thread.messages.length} messages
-                            </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-sm">{thread.name}</p>
+                            <p className="text-xs text-muted-foreground">{thread.messages.length} messages</p>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0 opacity-60 hover:opacity-100"
-                            onClick={(e) => toggleThreadPin(thread.id, e, setChatThreads)}
-                            title={thread.isPinned ? "Unpin thread" : "Pin thread"}
-                          >
-                            {thread.isPinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="xs" onClick={(e) => { e.stopPropagation(); toggleThreadPin(thread.id, chatThreads, setChatThreads) }}>
+                              {thread.isPinned ? <PinOff size={dynamicStyles.iconSize} /> : <Pin size={dynamicStyles.iconSize} />}
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -191,179 +182,50 @@ export function ChatPanelUI({
                 )}
               </div>
             </div>
-            
-            {/* Back Button */}
-            <div className={`${dynamicStyles.contentPadding} py-4 border-t`}>
-              <Button variant="outline" size="sm" onClick={() => setShowThreads(false)} className="w-full">
-                Back to Chat
-              </Button>
-            </div>
-          </>
-        ) : !isChatActive ? (
-          <>
-            {/* Initial Chat State */}
-            <div className="flex-1 overflow-y-auto p-6 flex items-center justify-center min-h-0">
-              <div className="text-center text-muted-foreground">
-                <Settings className={`h-12 w-12 mx-auto mb-4 opacity-50`} />
-                <p className="text-base mb-2">Start conversation with Visual information to LLM</p>
-                <p className="text-sm opacity-75">
-                  You can ask questions about hardware design, request parts list analysis, component selection, and more.
-                </p>
-              </div>
-            </div>
-
-            {/* Toggle Tabs */}
-            <div className={`${dynamicStyles.contentPadding} pb-2`}>
-              <div className="flex items-center justify-between">
-                <div className="flex space-x-1">
-                  <Button 
-                    variant={activeTab === 'context' ? 'default' : 'ghost'} 
-                    size="sm" 
-                    className="h-7 px-2 text-xs"
-                    onClick={() => setActiveTab('context')}
-                  >
-                    Context
-                  </Button>
-                  <Button 
-                    variant={activeTab === 'images' ? 'default' : 'ghost'} 
-                    size="sm" 
-                    className="h-7 px-2 text-xs"
-                    onClick={() => setActiveTab('images')}
-                  >
-                    Files
-                  </Button>
-                </div>
-                <span className="text-xs text-muted-foreground bg-green-50 px-2 py-1 rounded border border-green-200">
-                  GPT-4.1 
-                </span>
-              </div>
-            </div>
-
-            {/* Tab Content */}
-            {activeTab === 'context' && (
-              <div className={`${dynamicStyles.contentPadding} pb-4`}>
-                <div className="text-center text-muted-foreground">
-                  <div className="text-sm mb-2">Hardware Context</div>
-                  <div className="text-xs opacity-75">
-                    Current project context will be included in your conversation
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {activeTab === 'images' && (
-              <div className={`${dynamicStyles.contentPadding} pb-4`}>
-                <FileUpload
-                  selectedFiles={selectedFiles}
-                  uploadStatus={uploadStatus}
-                  filePreviewUrls={filePreviewUrls}
-                  onFileSelect={handleFileSelect}
-                  onClearFiles={clearFiles}
-                />
-              </div>
-            )}
           </>
         ) : (
-          <>
-            {/* Active Chat Messages */}
-            <div className="flex-1 overflow-y-auto min-h-0" style={{ scrollBehavior: 'smooth' }}>
-              <div className={`${dynamicStyles.contentPadding} py-4 space-y-4`}>
-                {chatMessages.map((message) => (
-                  <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`${dynamicStyles.messageMaxWidth} ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'} rounded-lg ${dynamicStyles.contentPadding} py-2`}>
-                      <div className={`${dynamicStyles.fontSize} whitespace-pre-wrap break-words`}>
-                        {message.content}
+          <div className="flex-1 flex flex-col min-h-0 w-full">
+            {/* Chat Messages */}
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <div className={`${dynamicStyles.contentPadding} py-4`}>
+                {chatMessages.map((message, index) => (
+                  <div key={index} className="mb-4">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 bg-muted rounded-full"></div>
                       </div>
-                      {message.attachments && message.attachments.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {message.attachments.map((attachment) => (
-                            <div key={attachment.id} className="text-xs opacity-75">
-                              📎 {attachment.filename}
-                            </div>
-                          ))}
+                      <div className="ml-3">
+                        <div className="text-sm">
+                          <span className="font-medium">{message.sender}</span>
+                          <span className="text-muted-foreground"> - {new Date(message.timestamp).toLocaleTimeString()}</span>
                         </div>
-                      )}
+                        <div className="mt-1 text-sm">
+                          <p>{message.content}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-
-            {/* Suggestions Display */}
-            {suggestions.length > 0 && (
-              <div className={`${dynamicStyles.contentPadding} py-2 border-t bg-muted/20`}>
-                <div className="text-sm font-medium mb-2">💡 Alternative Parts Suggestions</div>
-                <div className="space-y-2">
-                  {suggestions.map((suggestion, index) => (
-                    <SuggestionCard
-                      key={index}
-                      suggestion={suggestion}
-                      onAccept={(alternativeId) => handleAcceptSuggestion(suggestion.originalPart, alternativeId)}
-                      onReject={() => handleRejectSuggestion(suggestion.originalPart)}
-                      onViewDetails={() => openSuggestionModal(suggestion)}
-                    />
-                  ))}
-                </div>
+            {/* Message Input */}
+            <div className="border-t bg-muted/30">
+              <div className={`${dynamicStyles.contentPadding} py-2 flex items-center`}>
+                <input
+                  type="text"
+                  value={currentMessage}
+                  onChange={(e) => setCurrentMessage(e.target.value)}
+                  className="flex-1 bg-transparent border-none focus:ring-0 text-sm"
+                  placeholder="Type a message..."
+                />
+                <Button variant="ghost" size="sm" onClick={() => handleExtendedSendMessage(currentMessage, null)} className="text-xs">
+                  Send
+                </Button>
               </div>
-            )}
-          </>
-        )}
-
-        {/* Message Input */}
-        {(isChatActive || !showThreads) && (
-          <div className={`border-t ${dynamicStyles.contentPadding} py-4`}>
-            <div className="flex gap-2">
-              <textarea
-                id="chat-message-input"
-                name="chat-message"
-                autoComplete="off"
-                value={currentMessage}
-                onChange={(e) => setCurrentMessage(e.target.value)}
-                placeholder="Ask about hardware, compatibility, or request alternatives..."
-                className={`flex-1 resize-none border rounded-md px-3 py-2 ${dynamicStyles.fontSize} min-h-[44px] max-h-32`}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
-                    if (currentMessage.trim()) {
-                      handleExtendedSendMessage(currentMessage.trim())
-                      setCurrentMessage('')
-                    }
-                  }
-                }}
-              />
-              <Button
-                onClick={() => {
-                  if (currentMessage.trim()) {
-                    handleExtendedSendMessage(currentMessage.trim())
-                    setCurrentMessage('')
-                  }
-                }}
-                disabled={!currentMessage.trim() || llmStatus.isRunning}
-                size="sm"
-                className="self-end"
-              >
-                Send
-              </Button>
             </div>
           </div>
         )}
       </div>
-
-      {/* Suggestion Modal */}
-      {showSuggestionModal && selectedSuggestion && (
-        <SuggestionModal
-          suggestion={selectedSuggestion}
-          onAccept={(alternativeId) => {
-            handleAcceptSuggestion(selectedSuggestion.originalPart, alternativeId)
-            closeSuggestionModal()
-          }}
-          onReject={() => {
-            handleRejectSuggestion(selectedSuggestion.originalPart)
-            closeSuggestionModal()
-          }}
-          onClose={closeSuggestionModal}
-        />
-      )}
     </div>
   )
 }
