@@ -1,7 +1,7 @@
 // 🔍 代替部品検索機能
 // 第2段階：互換性問題のある部品に対して代替可能な部品を提案
 
-import type { Node, Connection } from '@/types'
+import type { Node, Connection, NodeData, CanvasNode } from '@/types'
 import { checkSystemCompatibility, type CompatibilityIssue } from '../connections/validation/unifiedCompatibilityChecker'
 
 // 代替部品の候補情報
@@ -32,7 +32,7 @@ export interface PartSuggestion {
  * 🎯 メイン関数：互換性問題に対する代替部品を検索
  */
 export function findAlternativeParts(
-  components: Node<NodeData>,
+  components: Node<NodeData>[],
   connections: Connection[],
   compatibilityIssues: CompatibilityIssue[]
 ): PartSuggestion[] {
@@ -74,7 +74,7 @@ export function findAlternativeParts(
 function searchCompatibleAlternatives(
   problemComponent: CanvasNode,
   issue: CompatibilityIssue,
-  allComponents: Node<NodeData>,
+  allComponents: Node<NodeData>[],
   connections: Connection[]
 ): AlternativePart[] {
   const alternatives: AlternativePart[] = []
@@ -201,131 +201,5 @@ function generateCommunicationAlternatives(
         title: `${component.data?.title} (${protocol}版)`,
         voltage: component.data?.voltage,
         communication: protocol,
-        description: `${protocol}通信対応版の${component.data?.title}`,
-        category,
-        advantages: [`${protocol}通信で互換性向上`],
-        tradeoffs: [`通信方式の変更が必要`]
-      })
-    }
-  })
-  
-  return alternatives
-}
-
-/**
- * 🔋 電力問題の代替部品を生成
- */
-function generatePowerAlternatives(
-  component: CanvasNode,
-  category: string
-): Omit<AlternativePart, 'compatibilityScore'>[] {
-  const alternatives: Omit<AlternativePart, 'compatibilityScore'>[] = []
-  
-  if (category === 'power') {
-    // 電源部品の場合：より高出力の電源を提案
-    alternatives.push({
-      id: `${component.id}_alt_highpower`,
-      title: `${component.data?.title} (高出力版)`,
-      voltage: component.data?.voltage,
-      communication: component.data?.communication,
-      description: `より高い電力供給能力を持つ${component.data?.title}`,
-      category,
-      advantages: ['より多くの部品に電力供給可能'],
-      tradeoffs: ['サイズ・コストの増加']
-    })
-  } else {
-    // 消費部品の場合：低消費電力版を提案
-    alternatives.push({
-      id: `${component.id}_alt_lowpower`,
-      title: `${component.data?.title} (省電力版)`,
-      voltage: component.data?.voltage,
-      communication: component.data?.communication,
-      description: `消費電力を抑えた${component.data?.title}`,
-      category,
-      advantages: ['消費電力削減'],
-      tradeoffs: ['性能の一部制限']
-    })
-  }
-  
-  return alternatives
-}
-
-/**
- * 🔧 一般的な代替部品を生成
- */
-function generateGeneralAlternatives(
-  component: CanvasNode,
-  category: string
-): Omit<AlternativePart, 'compatibilityScore'>[] {
-  return [{
-    id: `${component.id}_alt_compatible`,
-    title: `${component.data?.title} (互換版)`,
-    voltage: component.data?.voltage,
-    communication: component.data?.communication,
-    description: `互換性を改善した${component.data?.title}`,
-    category,
-    advantages: ['互換性の向上'],
-    tradeoffs: ['仕様の微調整']
-  }]
-}
-
-/**
- * 🧪 テスト用部品コンポーネントを作成
- */
-function createTestComponent(candidate: Omit<AlternativePart, 'compatibilityScore'>): CanvasNode {
-  return {
-    id: candidate.id,
-    title: candidate.title,
-    x: 0,
-    y: 0,
-    type: 'primary',
-    inputs: 1,
-    outputs: 1,
-    voltage: candidate.voltage,
-    communication: candidate.communication,
-    description: candidate.description
-  }
-}
-
-/**
- * 📊 互換性スコアを計算
- */
-function calculateCompatibilityScore(
-  candidate: Omit<AlternativePart, 'compatibilityScore'>,
-  original: CanvasNode,
-  compatibilityResult: any
-): number {
-  let score = 50 // ベーススコア
-  
-  // 互換性問題の数で減点
-  const criticalIssues = compatibilityResult.issues.filter(i => i.severity === 'critical').length
-  const warningIssues = compatibilityResult.issues.filter(i => i.severity === 'warning').length
-  
-  score -= criticalIssues * 30
-  score -= warningIssues * 10
-  
-  // 元部品との類似性でボーナス
-  if (candidate.voltage === original.voltage) score += 20
-  if (candidate.communication === original.communication) score += 15
-  
-  return Math.max(0, Math.min(100, score))
-}
-
-/**
- * 📝 推奨文を生成
- */
-function generateRecommendation(issue: CompatibilityIssue, bestAlternative: AlternativePart): string {
-  const issueType = issue.type
-  const advantages = bestAlternative.advantages.join('、')
-  
-  switch (issueType) {
-    case 'voltage_mismatch':
-      return `電圧の問題を解決するため、${bestAlternative.title}への変更を推奨します。${advantages}により互換性が向上します。`
-    case 'communication_incompatible':
-      return `通信プロトコルの問題を解決するため、${bestAlternative.title}への変更を推奨します。${advantages}により通信が可能になります。`
-    case 'power_insufficient':
-      return `電力の問題を解決するため、${bestAlternative.title}への変更を推奨します。${advantages}により十分な電力供給が可能です。`
-    default:
-      return `互換性を向上させるため、${bestAlternative.title}への変更を推奨します。`
-  }
-}
+        description: `${protocol}通信対応
+// ... truncated ...
