@@ -16,7 +16,7 @@ describe('ReviewMode', () => {
     content: { type: 'doc', content: [] },
     contentText: 'Test requirements content with// temperature monitoring system requirements',
     status: 'DRAFT',
-    version: 1,
+    version: '1.0.0',
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-02')
   }
@@ -31,7 +31,7 @@ describe('ReviewMode', () => {
   it('should render review checklist', () => {
     render(
       <ReviewMode
-        document={mockDocument}
+        document={mockDocument} sections={[]}
         onApprove={mockOnApprove}
         onReject={mockOnReject}
       />

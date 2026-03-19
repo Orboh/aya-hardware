@@ -1,6 +1,6 @@
 import 'openai/shims/node'
 import { NextApiRequest, NextApiResponse } from 'next'
-import handler from '@/pages/api/analyze-vision'
+import handler from '../../pages/api/analyze-vision'
 import OpenAI from 'openai'
 
 // Mock OpenAI

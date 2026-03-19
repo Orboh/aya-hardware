@@ -55,7 +55,7 @@ describe('RequirementsViewer', () => {
     content: { type: 'doc', content: [] },
     contentText: 'Test requirements content',
     status: 'DRAFT' as RequirementStatus,
-    version: 1,
+    version: '1.0.0',
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-02')
   }

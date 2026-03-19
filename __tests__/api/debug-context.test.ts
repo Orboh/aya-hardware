@@ -1,5 +1,5 @@
 import { createMocks } from 'node-mocks-http'
-import handler from '@/pages/api/debug/context/[projectId]'
+import handler from '../../pages/api/debug/context/[projectId]'
 import { getServerSession } from 'next-auth/next'
 import { prisma } from '@/lib/prisma'
 

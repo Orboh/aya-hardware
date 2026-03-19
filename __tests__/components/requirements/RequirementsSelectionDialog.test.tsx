@@ -50,7 +50,7 @@ describe('RequirementsSelectionDialog', () => {
   it('should render dialog when open', async () => {
     render(
       <RequirementsSelectionDialog
-        open={true}
+        isOpen={true}
         onSelect={mockOnSelect}
         onClose={mockOnClose}
         projectId="project-123"

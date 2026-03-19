@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
-import handler from '@/pages/api/debug/context/[projectId]'
+import handler from '../../pages/api/debug/context/[projectId]'
 import { prisma } from '@/lib/prisma'
 import type { DebugContext } from '@/types/debug'
 
@@ -141,7 +141,7 @@ describe('/api/debug/context/[projectId]', () => {
     }
     
     req.query = { projectId: 'project-123' }
-    mockPrisma.project.findUnique.mockResolvedValue(mockProject as any)
+    (mockPrisma.project.findUnique as jest.Mock).mockResolvedValue(mockProject as any)
     
     await handler(req as NextApiRequest, res as NextApiResponse)
     
