@@ -198,6 +198,6 @@ test.describe('AYA Hardware Requirements Dialogue E2E Workflow', () => {
     await page.click('[data-testid="aya-dialogue-tab"]')
 
     // AYA should ask the first question
-    await expect(page.locator('[data-testid="ay'])
+    await expect(page.locator('[data-testid="ay'))
   })
-})
+}
